@@ -1,0 +1,4 @@
+python-dotenv==0.20.0
+python-telegram-bot==13.7
+requests==2.27.1
+vk-api==11.9.9
