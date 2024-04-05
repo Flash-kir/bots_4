@@ -40,7 +40,7 @@ python bot_tm.py  #запуск бота telegram
 python bot_VK.py  #запуск бота VK
 ```
 
-Запущенный бот VK можно посмотреть по [ссылке](`https://vk.com/im?sel=c99`)
+Запущенный бот VK можно посмотреть по [ссылке](https://vk.com/im?sel=c99)
 
 Запущенный бот Telegram можно посмотреть по [ссылке](https://t.me/speaker_dvmn_bot)
 
