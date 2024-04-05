@@ -45,7 +45,7 @@ def start(update: Update, context: CallbackContext):
     user = update.effective_user
     context.chat_data['questions'] = get_questions()
     context.chat_data['score'] = 0
-
+    r.set(update.effective_user.id, '')
     custom_keyboard = [
         ['Новый вопрос', 'Выйти']
     ]
