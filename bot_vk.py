@@ -9,7 +9,7 @@ from quizes_utils import get_questions, set_first_question
 
 
 load_dotenv()
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = redis.Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT'), db=0)
 
 
 def send_answer(event, vk_api, context):
@@ -43,7 +43,6 @@ def send_answer(event, vk_api, context):
             current, questions_list = set_first_question(context['questions'])
             context['current'] = current
             context['questions'] = questions_list
-            print(current[1])
             message_text = current[0]
             context['question_asked'] = True
             r.set(event.user_id, message_text)

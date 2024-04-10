@@ -14,7 +14,7 @@ from telegram.ext import (
 from dotenv import load_dotenv
 
 load_dotenv()
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = redis.Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT'), db=0)
 
 QUESTION, SOLUTION, QUIT = range(3)
 
@@ -43,7 +43,6 @@ def handle_new_question_request(update: Update, context: CallbackContext):
 
     if user_text == "Мой счет":
         message_text = f"Ваш счет {context.chat_data['score']}."
-        print(r.get(update.effective_user.id).decode())
         update.message.reply_text(message_text)
         if r.get(update.effective_user.id).decode() == "":
             return QUESTION
@@ -57,7 +56,6 @@ def handle_new_question_request(update: Update, context: CallbackContext):
         )
         context.chat_data['questions'] = questions_list
         r.set(update.effective_user.id, current[1])
-        print(current[1])
         message_text = current[0]
 
     if user_text == "Выйти":

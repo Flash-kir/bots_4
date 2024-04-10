@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+from dotenv import load_dotenv
 
 
 def parse_block(block_text):
@@ -17,30 +18,12 @@ def parse_quize(quize_text):
     quiz = {
         'Tours': [],
     }
-    quiz_fields = [
-        'Чемпионат',
-        'URL',
-        'Дата',
-        'Редактор',
-        'Инфо',
-        'Автор',
-    ]
-    question_fields = [
-        'Ответ',
-        'Комментарий',
-        'Источник',
-        'Автор',
-        'Зачет'
-    ]
     current_tour = {}
     current_question = ''
     quize_blocks = quize_text.split('\n\n')
     for block in quize_blocks:
-        (block_text, name, short_name) = parse_block(block)
-#        print((block_text, name, short_name))
-        if short_name in quiz_fields and not current_tour:
-            quiz[name] = block_text
-        elif short_name == 'Тур':
+        block_text, name, short_name = parse_block(block)
+        if short_name == 'Тур':
             if current_tour:
                 quiz['Tours'].append(current_tour)
             current_tour = {
@@ -52,36 +35,39 @@ def parse_quize(quize_text):
                 'Вопрос': block_text,
             }
             current_question = name
-        elif short_name in question_fields:
+        elif short_name == 'Ответ':
             if not current_question:
                 current_question = 'Вопрос'
                 current_tour[current_question] = {
                     'Вопрос': '',
                 }
             current_tour[current_question][name] = block_text
+
     if current_tour:
         quiz['Tours'].append(current_tour)
     return quiz
 
 
-def create_quizes_json():
+def main():
+    load_dotenv()
+    path_txt = os.environ.get('PATH_QUIZES_TXT')
+    path_json = os.environ.get('PATH_QUIZES_JSON')
     n = 1
     quizes = {}
-    for filename in glob.glob("quizes/*.txt"):
+    for filename in glob.glob(f"{path_txt}*.txt"):
         if n >= 1:
             with open(filename, "r", encoding='KOI8-R') as my_file:
                 file_contents = my_file.read()
-            print(n, filename)
             quizes[filename] = parse_quize(file_contents)
-            with open(f'json_quizes/{n}.json', 'w') as file:
+
+            dir_name = os.path.dirname(f'{path_json}{n}.json')
+            if not os.path.exists(dir_name):
+                os.mkdir(dir_name)
+            with open(f'{path_json}{n}.json', 'w') as file:
                 json.dump(quizes[filename], file)
             n += 1
         else:
             break
-
-
-def main():
-    create_quizes_json()
 
 
 if __name__ == '__main__':
