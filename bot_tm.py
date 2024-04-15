@@ -1,7 +1,8 @@
 import os
 import redis
+from functools import partial
 
-from quizes_utils import get_questions, set_first_question
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     Updater,
@@ -10,155 +11,116 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     ConversationHandler,
+    RegexHandler,
 )
 from dotenv import load_dotenv
-
-load_dotenv()
-r = redis.Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT'), db=0)
-
-QUESTION, SOLUTION, QUIT = range(3)
-
-
-def start(update: Update, context: CallbackContext):
-    """Send a message when the command /start is issued."""
-    user = update.effective_user
-    context.chat_data['questions'] = get_questions()
-    context.chat_data['score'] = 0
-    r.set(update.effective_user.id, '')
-    custom_keyboard = [
-        ['Новый вопрос', 'Выйти']
-    ]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, resize_keyboard=True)
-    context.bot.send_message(
-                            chat_id=update.effective_chat.id,
-                            text="Привет! Я бот для викторин.",
-                            reply_markup=reply_markup,
-    )
-    return QUESTION
+from quizes_utils import get_questions
+from quizes_utils import check_user_context
+from quizes_utils import set_question
+from quizes_utils import get_resignation_message
+from quizes_utils import get_new_question
+from quizes_utils import get_score_message
+from quizes_utils import check_answer
+from quizes_utils import clear_user_context
 
 
-def handle_new_question_request(update: Update, context: CallbackContext):
-    user_text = update.message.text
-    message_text = ""
+QUESTION, GAME = range(2)
 
-    if user_text == "Мой счет":
-        message_text = f"Ваш счет {context.chat_data['score']}."
-        update.message.reply_text(message_text)
-        if r.get(update.effective_user.id).decode() == "":
-            return QUESTION
 
-    if not context.chat_data['questions']:
-        context.chat_data['questions'] = get_questions()
-
-    if user_text == "Новый вопрос" or r.get(update.effective_user.id).decode():
-        current, questions_list = set_first_question(
-            context.chat_data['questions']
-        )
-        context.chat_data['questions'] = questions_list
-        r.set(update.effective_user.id, current[1])
-        message_text = current[0]
-
-    if user_text == "Выйти":
-        context.chat_data['questions'] = []
-        context.chat_data['score'] = 0
-        update.message.reply_text("Спасибо за игру! До встречи!")
-        return QUIT
-
+def send_sessage(update: Update, message_text):
     custom_keyboard = [
         ['Мой счет', 'Сдаться'],
-        ['Выйти'],
+        ['Новый вопрос', 'Выйти']
     ]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, resize_keyboard=True)
 
     update.message.reply_text(message_text, reply_markup=reply_markup)
-    return SOLUTION
 
 
-def handle_solution_attempt(update: Update, context: CallbackContext):
+def start(update: Update, context: CallbackContext, r):
+    user = update.effective_user
+    check_user_context(user.id, r, 'tm')
+    message_text = 'Привет! Я бот для викторин.'
+
+    send_sessage(update, message_text)
+    return GAME
+
+
+def ask_new_question(update: Update, context: CallbackContext, r):
+    user = update.effective_user
+    max_question_num = int(r.get('max_question_num'))
+    message_text = get_new_question(user.id, r, max_question_num, 'tm')
+
+    send_sessage(update, message_text)
+    return GAME
+
+
+def handle_answer(update: Update, context: CallbackContext, r):
+    user = update.effective_user
     user_text = update.message.text
-    message_text = ""
+    message_text = check_answer(user.id, r, user_text, 'tm')
 
-    if user_text == "Мой счет":
-        message_text = f"Ваш счет {context.chat_data['score']}."
-        update.message.reply_text(message_text)
-        if r.get(update.effective_user.id).decode() == "":
-            return QUESTION
-
-    if user_text == "Сдаться":
-        custom_keyboard = [
-            ['Новый вопрос'],
-            ['Мой счет', 'Выйти']
-        ]
-        answer = r.get(update.effective_user.id).decode()
-        message_text = f"Правильный ответ '{answer}'. Попробуем ещё раз?"
-        r.set(update.effective_user.id, "")
-        reply_markup = ReplyKeyboardMarkup(
-            custom_keyboard,
-            resize_keyboard=True
-        )
-
-        update.message.reply_text(message_text, reply_markup=reply_markup)
-        return QUESTION
-
-    if user_text == r.get(update.effective_user.id).decode():
-        custom_keyboard = [
-            ['Новый вопрос'],
-            ['Мой счет', 'Выйти']
-        ]
-        message_text = f"Это правильный ответ, поздравляю!!! Ещё вопрос?"
-        context.chat_data['score'] = context.chat_data['score'] + 1
-        r.set(update.effective_user.id, "")
-        reply_markup = ReplyKeyboardMarkup(
-            custom_keyboard,
-            resize_keyboard=True
-        )
-
-        update.message.reply_text(message_text, reply_markup=reply_markup)
-        return QUESTION
-
-    if user_text != r.get(update.effective_user.id).decode():
-        custom_keyboard = [
-            ['Мой счет', 'Сдаться'],
-            ['Выйти'],
-        ]
-        message_text = f"Это неверный ответ, попробуйте снова."
-        reply_markup = ReplyKeyboardMarkup(
-            custom_keyboard,
-            resize_keyboard=True
-        )
-
-        update.message.reply_text(message_text, reply_markup=reply_markup)
-        return SOLUTION
-
-    if user_text == "Выйти":
-        context.chat_data['questions'] = []
-        context.chat_data['score'] = 0
-        update.message.reply_text("Спасибо за игру! До встречи!")
-        return QUIT
+    send_sessage(update, message_text)
+    return GAME
 
 
-def quit(update: Update, context: CallbackContext):
+def score(update: Update, context: CallbackContext, r):
+    user = update.effective_user
+    message_text = get_score_message(user.id, r, 'tm')
+
+    send_sessage(update, message_text)
+    return GAME
+
+
+def resign(update: Update, context: CallbackContext, r):
+    user = update.effective_user
+    message_text = get_resignation_message(user.id, r, 'tm')
+
+    send_sessage(update, message_text)
+    return GAME
+
+
+def quit(update: Update, context: CallbackContext, r):
+    update.message.reply_text("Спасибо за игру! До встречи!")
+    user = update.effective_user
+    clear_user_context(user.id, r, 'tm')
     return ConversationHandler.END
 
 
 def main():
+    load_dotenv()
+    r = redis.Redis(
+        host=os.environ.get('REDIS_HOST', default='localhost'),
+        port=os.environ.get('REDIS_PORT', default=6379),
+        db=0
+    )
     telegram_bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
 
+    questions, max_question_num = get_questions(
+        os.environ.get('PATH_QUIZES_JSON')
+    )
+    r.set('max_question_num', max_question_num)
+    for i in range(max_question_num):
+        set_question(r, i+1, questions[f'question_{i+1}'])
+
+    redis_start = partial(start, r=r)
+    redis_ask_question = partial(ask_new_question, r=r)
+    redis_score = partial(score, r=r)
+    redis_resign = partial(resign, r=r)
+    redis_quit = partial(quit, r=r)
+    redis_handle_answer = partial(handle_answer, r=r)
+
     updater = Updater(telegram_bot_token)
-
     dp = updater.dispatcher
-
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', redis_start)],
         states={
-            QUESTION: [
-                MessageHandler(Filters.text, handle_new_question_request),
-            ],
-            SOLUTION: [
-                MessageHandler(Filters.text, handle_solution_attempt),
-            ],
-            QUIT: [
-                CommandHandler('end', quit),
+            GAME: [
+                RegexHandler('^' + 'Новый вопрос' + '$', redis_ask_question),
+                RegexHandler('^' + 'Мой счет' + '$', redis_score),
+                RegexHandler('^' + 'Сдаться' + '$', redis_resign),
+                RegexHandler('^' + 'Выйти' + '$', redis_quit),
+                MessageHandler(Filters.text, redis_handle_answer),
             ],
         },
         fallbacks=[CommandHandler('start', start)],

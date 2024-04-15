@@ -19,13 +19,19 @@ pip install -r requirements.txt
 ```
 
 ### 4. Для хранения переменных окружения создаем файл .env:
+У кажите токены бота telegram и VK в файле `.env`, пути к файлам викторин, хост и порт для redis, предварительно выполнив команду:
+
 ```
-touch .env
+cp example.env .env
 ```
 файл должнет содержать следующие переменные
 ```
 TELEGRAM_BOT_TOKEN=5986494584:AAEg..
 VK_GROUP_TOKEN=vk1.a.dsc...
+PATH_QUIZES_TXT='quizes/'
+PATH_QUIZES_JSON='json_quizes_2/'
+REDIS_HOST='localhost'
+REDIS_PORT=6379
 ```
 Для запуска ботов добавляем токены ботов Telegram и VK в `.env` файл.
 
