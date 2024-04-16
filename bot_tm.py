@@ -1,5 +1,6 @@
 import os
 import redis
+import json
 from functools import partial
 
 
@@ -16,7 +17,6 @@ from telegram.ext import (
 from dotenv import load_dotenv
 from quizes_utils import get_questions
 from quizes_utils import check_user_context
-from quizes_utils import set_question
 from quizes_utils import get_resignation_message
 from quizes_utils import get_new_question
 from quizes_utils import get_score_message
@@ -101,7 +101,7 @@ def main():
     )
     r.set('max_question_num', max_question_num)
     for i in range(max_question_num):
-        set_question(r, i+1, questions[f'question_{i+1}'])
+        r.set(f'question_{i+1}', json.dumps(questions[f'question_{i+1}']))
 
     redis_start = partial(start, r=r)
     redis_ask_question = partial(ask_new_question, r=r)

@@ -1,7 +1,5 @@
 import random
-import glob
 import json
-
 
 
 def get_questions(path):
@@ -41,19 +39,11 @@ def check_user_context(user_id, r, social_web):
         user_context = clear_user_context(user_id, r, social_web)
 
 
-def set_question(r, n, question):
-    r.set(f'question_{n}', json.dumps(question))
-
-
-def get_question(r, name):
-    return json.loads(r.get(name))
-
-
 def get_answer(user_id, r, social_web):
     answer = ''
     user_context = get_user_context(r, user_id, social_web)
     if user_context['last_asked_question']:
-        question = get_question(r, user_context['last_asked_question'])
+        question = json.loads(r.get(user_context['last_asked_question']))
         answer = question['answer']
     return answer
 
@@ -87,7 +77,7 @@ def get_new_question(user_id, r, max_question_num, social_web):
                 user_context['asked_questions']
             )
             if question_number:
-                question = get_question(r, f'question_{question_number}')
+                question = json.loads(r.get(f'question_{question_number}'))
                 message = question['question']
                 user_context['last_asked_question'] = f'question_{question_number}'
                 user_context['asked_questions'].append(question_number)
@@ -105,7 +95,7 @@ def check_answer(user_id, r, user_answer, social_web):
     user_context = get_user_context(r, user_id, social_web)
     if user_context:
         if user_context['last_asked_question']:
-            last_question = get_question(r, user_context['last_asked_question'])
+            last_question = json.loads(r.get(user_context['last_asked_question']))
             if user_answer == last_question['answer']:
                 message = 'Поздравляю, это \
                     правильный ответ!\nДля продолжения нажмите кнопку "Новый вопрос"'
