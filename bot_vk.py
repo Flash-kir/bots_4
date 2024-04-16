@@ -1,15 +1,12 @@
 import os
 import random
 import redis
-import json
 import vk_api as vk
 
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard
 from dotenv import load_dotenv
-from quizes_utils import get_questions
 from quizes_utils import check_user_context
-from quizes_utils import set_question
 from quizes_utils import get_resignation_message
 from quizes_utils import get_new_question
 from quizes_utils import get_score_message
@@ -30,7 +27,7 @@ def catch_message(event, vk_api, kb, r, max_question_num, social_web):
     message_text = ''
 
     check_user_context(event.user_id, r, social_web)
-    
+
     if user_text == 'Сдаться':
         message_text = get_resignation_message(event.user_id, r, social_web)
     elif user_text == 'Новый вопрос':
@@ -53,10 +50,7 @@ def main():
         port=os.environ.get('REDIS_PORT', default=6379),
         db=0
     )
-    
-    questions, max_question_num = get_questions(os.environ.get('PATH_QUIZES_JSON'))
-    for i in range(max_question_num):
-        set_question(r, i+1, questions[f'question_{i+1}'])
+    max_question_num = int(r.get('max_question_num'))
 
     vk_session = vk.VkApi(token=os.environ.get('VK_GROUP_TOKEN'))
     vk_api = vk_session.get_api()

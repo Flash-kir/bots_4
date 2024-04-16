@@ -15,7 +15,6 @@ from telegram.ext import (
     RegexHandler,
 )
 from dotenv import load_dotenv
-from quizes_utils import get_questions
 from quizes_utils import check_user_context
 from quizes_utils import get_resignation_message
 from quizes_utils import get_new_question
@@ -95,13 +94,6 @@ def main():
         db=0
     )
     telegram_bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-
-    questions, max_question_num = get_questions(
-        os.environ.get('PATH_QUIZES_JSON')
-    )
-    r.set('max_question_num', max_question_num)
-    for i in range(max_question_num):
-        r.set(f'question_{i+1}', json.dumps(questions[f'question_{i+1}']))
 
     redis_start = partial(start, r=r)
     redis_ask_question = partial(ask_new_question, r=r)
