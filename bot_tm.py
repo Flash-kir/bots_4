@@ -1,6 +1,5 @@
 import os
 import redis
-import json
 from functools import partial
 
 
@@ -15,12 +14,11 @@ from telegram.ext import (
     RegexHandler,
 )
 from dotenv import load_dotenv
-from quizes_utils import check_user_context
 from quizes_utils import get_resignation_message
-from quizes_utils import get_new_question
+from quizes_utils import ask_question_handler
 from quizes_utils import get_score_message
-from quizes_utils import check_answer
-from quizes_utils import clear_user_context
+from quizes_utils import check_answer_handler
+from quizes_utils import set_user_context
 
 
 QUESTION, GAME = range(2)
@@ -37,8 +35,6 @@ def send_sessage(update: Update, message_text):
 
 
 def start(update: Update, context: CallbackContext, r):
-    user = update.effective_user
-    check_user_context(user.id, r, 'tm')
     message_text = 'Привет! Я бот для викторин.'
 
     send_sessage(update, message_text)
@@ -48,7 +44,7 @@ def start(update: Update, context: CallbackContext, r):
 def ask_new_question(update: Update, context: CallbackContext, r):
     user = update.effective_user
     max_question_num = int(r.get('max_question_num'))
-    message_text = get_new_question(user.id, r, max_question_num, 'tm')
+    message_text = ask_question_handler(user.id, r, max_question_num, 'tm')
 
     send_sessage(update, message_text)
     return GAME
@@ -57,7 +53,7 @@ def ask_new_question(update: Update, context: CallbackContext, r):
 def handle_answer(update: Update, context: CallbackContext, r):
     user = update.effective_user
     user_text = update.message.text
-    message_text = check_answer(user.id, r, user_text, 'tm')
+    message_text = check_answer_handler(user.id, r, user_text, 'tm')
 
     send_sessage(update, message_text)
     return GAME
@@ -82,7 +78,8 @@ def resign(update: Update, context: CallbackContext, r):
 def quit(update: Update, context: CallbackContext, r):
     update.message.reply_text("Спасибо за игру! До встречи!")
     user = update.effective_user
-    clear_user_context(user.id, r, 'tm')
+    set_user_context(r, user.id, 'tm', None)
+
     return ConversationHandler.END
 
 

@@ -14,29 +14,23 @@ def get_user_context(r, user_id, social_web):
     user_context = r.get(f'user_{social_web}_{user_id}')
     if user_context:
         return json.loads(user_context)
-    return None
-
-
-def clear_user_context(user_id, r, social_web):
-    user_context = {
-        'score': 0,
-        'last_asked_question': '',
-        'asked_questions': [],
-    }
-    set_user_context(r, user_id, social_web, user_context)
+    else:
+        return {
+            'score': 0,
+            'last_asked_question': '',
+            'asked_questions': [],
+        }
 
 
 def set_user_context(r, user_id, social_web, user_context):
     if not user_context:
-        user_context = clear_user_context(user_id, r)
+        user_context = {
+            'score': 0,
+            'last_asked_question': '',
+            'asked_questions': [],
+        }
     r.set(f'user_{social_web}_{user_id}', json.dumps(user_context))
     return user_context
-
-
-def check_user_context(user_id, r, social_web):
-    user_context = get_user_context(r, user_id, social_web)
-    if not user_context:
-        user_context = clear_user_context(user_id, r, social_web)
 
 
 def get_answer(user_id, r, social_web):
@@ -65,7 +59,7 @@ def get_question_number(max_num, asked_questions):
             return number
 
 
-def get_new_question(user_id, r, max_question_num, social_web):
+def ask_question_handler(user_id, r, max_question_num, social_web):
     message = ''
     user_context = get_user_context(r, user_id, social_web)
     if user_context:
@@ -86,11 +80,11 @@ def get_new_question(user_id, r, max_question_num, social_web):
                 score_message = get_score_message(user_id, r, social_web)
                 message = f'Поздравляем, вы ответили на все \
                     вопросы.\n{score_message}\nВикторина начнется заново.'
-                clear_user_context(user_id, r)
+                set_user_context(r, user_id, social_web, None)
     return message
 
 
-def check_answer(user_id, r, user_answer, social_web):
+def check_answer_handler(user_id, r, user_answer, social_web):
     message = ''
     user_context = get_user_context(r, user_id, social_web)
     if user_context:
@@ -119,5 +113,5 @@ def get_resignation_message(user_id, r, social_web):
         message_text = score_message
     user_context = get_user_context(r, user_id, social_web)
     user_context['last_asked_question'] = ''
-    set_user_context(r, user_id, social_web, user_context)    
+    set_user_context(r, user_id, social_web, user_context)
     return message_text

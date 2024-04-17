@@ -6,11 +6,10 @@ import vk_api as vk
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard
 from dotenv import load_dotenv
-from quizes_utils import check_user_context
 from quizes_utils import get_resignation_message
-from quizes_utils import get_new_question
+from quizes_utils import ask_question_handler
 from quizes_utils import get_score_message
-from quizes_utils import check_answer
+from quizes_utils import check_answer_handler
 
 
 def send_message(user_id, vk_api, text, kb):
@@ -26,16 +25,14 @@ def catch_message(event, vk_api, kb, r, max_question_num, social_web):
     user_text = event.text
     message_text = ''
 
-    check_user_context(event.user_id, r, social_web)
-
     if user_text == 'Сдаться':
         message_text = get_resignation_message(event.user_id, r, social_web)
     elif user_text == 'Новый вопрос':
-        message_text = get_new_question(event.user_id, r, max_question_num, social_web)
+        message_text = ask_question_handler(event.user_id, r, max_question_num, social_web)
     elif user_text == 'Мой счет':
         message_text = get_score_message(event.user_id, r, social_web)
     else:
-        message_text = check_answer(event.user_id, r, user_text, social_web)
+        message_text = check_answer_handler(event.user_id, r, user_text, social_web)
 
     if message_text == '':
         message_text = 'Привет! Я бот, проводящий викторины, приступим?'
