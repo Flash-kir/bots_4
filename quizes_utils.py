@@ -10,7 +10,6 @@ def get_user_context(r, user_id, social_web):
         return {
             'score': 0,
             'last_asked_question': '',
-            'asked_questions': [],
         }
 
 
@@ -19,7 +18,6 @@ def set_user_context(r, user_id, social_web, user_context):
         user_context = {
             'score': 0,
             'last_asked_question': '',
-            'asked_questions': [],
         }
     r.set(f'user_{social_web}_{user_id}', json.dumps(user_context))
     return user_context
@@ -42,15 +40,6 @@ def get_score_message(user_id, r, social_web):
     return f'Ваш счет {score}.'
 
 
-def get_question_number(max_num, asked_questions):
-    if max_num == len(asked_questions):
-        return None
-    while True:
-        number = random.randint(1, max_num)
-        if number not in asked_questions:
-            return number
-
-
 def ask_question_handler(user_id, r, max_question_num, social_web):
     message = ''
     user_context = get_user_context(r, user_id, social_web)
@@ -58,15 +47,15 @@ def ask_question_handler(user_id, r, max_question_num, social_web):
         if user_context['last_asked_question']:
             message = 'Вам уже задан вопрос, пожалуйста ответьте на него'
         else:
-            question_number = get_question_number(
+            question_number = random.randint(
+                1,
                 max_question_num,
-                user_context['asked_questions']
             )
             if question_number:
                 question = json.loads(r.get(f'question_{question_number}'))
                 message = question['question']
                 user_context['last_asked_question'] = f'question_{question_number}'
-                user_context['asked_questions'].append(question_number)
+#                user_context['asked_questions'].append(question_number)
                 set_user_context(r, user_id, social_web, user_context)
             else:
                 score_message = get_score_message(user_id, r, social_web)
