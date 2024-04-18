@@ -41,28 +41,16 @@ def get_score_message(user_id, r, social_web):
 
 
 def ask_question_handler(user_id, r, max_question_num, social_web):
-    message = ''
     user_context = get_user_context(r, user_id, social_web)
-    if user_context:
-        if user_context['last_asked_question']:
-            message = 'Вам уже задан вопрос, пожалуйста ответьте на него'
-        else:
-            question_number = random.randint(
-                1,
-                max_question_num,
-            )
-            if question_number:
-                question = json.loads(r.get(f'question_{question_number}'))
-                message = question['question']
-                user_context['last_asked_question'] = f'question_{question_number}'
-#                user_context['asked_questions'].append(question_number)
-                set_user_context(r, user_id, social_web, user_context)
-            else:
-                score_message = get_score_message(user_id, r, social_web)
-                message = f'Поздравляем, вы ответили на все \
-                    вопросы.\n{score_message}\nВикторина начнется заново.'
-                set_user_context(r, user_id, social_web, None)
-    return message
+    if user_context['last_asked_question']:
+        return 'Вам уже задан вопрос, пожалуйста ответьте на него'
+
+    question_number = random.randint(1, max_question_num)
+    question = json.loads(r.get(f'question_{question_number}'))
+
+    user_context['last_asked_question'] = f'question_{question_number}'
+    set_user_context(r, user_id, social_web, user_context)
+    return question['question']
 
 
 def check_answer_handler(user_id, r, user_answer, social_web):
