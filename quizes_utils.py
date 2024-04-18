@@ -2,14 +2,6 @@ import random
 import json
 
 
-def get_questions(path):
-    questions = {}
-    with open(f'{path}questions.json', 'r') as file:
-        questions = json.loads(file.read())
-
-    return questions, questions['quantity']
-
-
 def get_user_context(r, user_id, social_web):
     user_context = r.get(f'user_{social_web}_{user_id}')
     if user_context:
