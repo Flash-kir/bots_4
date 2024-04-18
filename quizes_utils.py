@@ -66,22 +66,21 @@ def ask_question_handler(user_id, r, max_question_num, social_web):
 
 
 def check_answer_handler(user_id, r, user_answer, social_web):
-    message = ''
     user_context = get_user_context(r, user_id, social_web)
-    if user_context:
-        if user_context['last_asked_question']:
-            last_question = json.loads(r.get(user_context['last_asked_question']))
-            if user_answer == last_question['answer']:
-                message = 'Поздравляю, это \
-                    правильный ответ!\nДля продолжения нажмите кнопку "Новый вопрос"'
-                user_context['score'] = user_context['score'] + 1
-                user_context['last_asked_question'] = ''
-                set_user_context(r, user_id, social_web, user_context)
-            else:
-                message = 'К сожалению это не правильный ответ..\nПопробуйте ещё раз.'
-        else:
-            message = 'Не понимаю о чем Вы.\nНажмите кнопку "Новый вопрос"'
-    return message
+
+    if not user_context['last_asked_question']:
+        return 'Не понимаю о чем Вы.\nНажмите кнопку "Новый вопрос"'
+
+    last_question = json.loads(r.get(user_context['last_asked_question']))
+
+    if user_answer != last_question['answer']:
+        return 'К сожалению это не правильный ответ..\nПопробуйте ещё раз.'
+
+    user_context['score'] = user_context['score'] + 1
+    user_context['last_asked_question'] = ''
+    set_user_context(r, user_id, social_web, user_context)
+    return 'Поздравляю, это \
+        правильный ответ!\nДля продолжения нажмите кнопку "Новый вопрос"'
 
 
 def get_resignation_message(user_id, r, social_web):
